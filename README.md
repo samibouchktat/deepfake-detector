@@ -138,3 +138,67 @@ Ouvrez le dossier cloné dans VS Code ou dans Codex. Copiez le message correspon
 ### Message pour le binôme vidéo
 
 > Lis le `README.md` à la racine et vérifie que je suis sur `feature/video`. Nous construisons un seul modèle PyTorch de détection de deepfakes faciaux, avec un CNN partagé. Je suis responsable de la tête vidéo. Commence par implémenter `model/video_head.py` avec une GRU qui transforme des séquences `[B, 16, 128]` en logits `[B]`. Vérifie-la avec des vecteurs fictifs, puis indique les fichiers modifiés et la commande de vérification. Nous brancherons le CNN du binôme sur `integration`.
+
+### Vérifier la tête vidéo sur CPU
+
+`model/video_head.py` fournit `VideoHead` : une GRU suivie d'une couche linéaire,
+avec une entrée `[B, T, 128]` et une sortie `[B]` de logits bruts. La première
+version du pipeline utilisera `T = 16`. Cette tête attend les caractéristiques
+du CNN partagé ; elle ne lit pas directement les fichiers vidéo et doit encore
+être entraînée avec le modèle commun.
+
+Après l'installation de PyTorch, lancez :
+
+```powershell
+.\.venv\Scripts\python.exe -m unittest discover -s tests -v
+```
+
+Les vérifications utilisent des tenseurs fictifs sur CPU : dimensions de sortie
+(y compris un lot d'une seule séquence), propagation des gradients vers toutes
+les images et les paramètres, mise à jour des poids et rechargement des poids.
+
+### Préparer le manifeste vidéo
+
+Avant d'extraire les images, `data/prepare_manifest.py` répartit les vidéos
+entre `train` (entraînement), `val` (choix des seuils) et `test` (évaluation
+finale). Une vidéo originale et ses manipulations restent ensemble. Les liens
+indirects et les manipulations utilisant plusieurs sources sont regroupés aussi.
+
+Le CSV d'entrée doit contenir `video_id,source_id,label,path` :
+
+- `video_id` : identifiant unique de la vidéo.
+- `source_id` : identifiant de l'original ; pour un original, son propre
+  `video_id`. Si plusieurs sources sont connues, les séparer par `|`.
+- `label` : `0` pour une vidéo réelle et `1` pour une vidéo manipulée.
+- `path` : chemin relatif au dépôt, par exemple `data/raw/mon_jeu/video.mp4`.
+
+Les liens de sources et les étiquettes doivent venir des informations du jeu
+retenu. Le script ne les devine pas à partir des noms de fichiers.
+
+**Essai sans données :** `data/source_videos.example.csv` contient uniquement
+12 noms fictifs, pas des vidéos. La commande suivante crée un exemple local,
+ignoré par Git ; il ne faut pas l'utiliser pour entraîner le modèle.
+
+```powershell
+.\.venv\Scripts\python.exe -m data.prepare_manifest create --input data/source_videos.example.csv --output .venv/manifest_demo.csv --allow-missing
+.\.venv\Scripts\python.exe -m data.prepare_manifest check --input .venv/manifest_demo.csv --allow-missing
+```
+
+**Avec les vraies vidéos :** créer `data/source_videos.csv` à partir du jeu
+choisi avec le binôme, puis lancer ces commandes sans `--allow-missing` :
+
+```powershell
+.\.venv\Scripts\python.exe -m data.prepare_manifest create --input data/source_videos.csv
+.\.venv\Scripts\python.exe -m data.prepare_manifest check --input data/manifest.csv
+```
+
+Le découpage utilise la graine `42` et des proportions `70/15/15` par groupes,
+avec au moins un groupe par ensemble. Les nombres de vidéos et l'équilibre des
+classes peuvent donc différer de ces proportions. Examiner les effectifs
+affichés avant de figer le découpage ; une classe absente est signalée.
+Le script refuse d'écraser un manifeste existant. Le contrôle vérifie les
+chemins, les doublons et les fuites de sources, mais ne décode pas les vidéos.
+
+Cette étape ne réalise ni détection de visage, ni extraction de séquences, ni
+entraînement. L'extraction viendra après le choix du jeu et l'accord avec le
+binôme sur le prétraitement commun.

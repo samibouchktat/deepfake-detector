@@ -1,0 +1,13 @@
+video_id,source_id,label,path
+original_a,original_a,0,data/raw/exemple/original_a.mp4
+fake_a,original_a,1,data/raw/exemple/fake_a.mp4
+original_b,original_b,0,data/raw/exemple/original_b.mp4
+fake_b,original_b,1,data/raw/exemple/fake_b.mp4
+original_c,original_c,0,data/raw/exemple/original_c.mp4
+fake_c,original_c,1,data/raw/exemple/fake_c.mp4
+original_d,original_d,0,data/raw/exemple/original_d.mp4
+fake_d,original_d,1,data/raw/exemple/fake_d.mp4
+original_e,original_e,0,data/raw/exemple/original_e.mp4
+fake_e,original_e,1,data/raw/exemple/fake_e.mp4
+original_f,original_f,0,data/raw/exemple/original_f.mp4
+fake_f,original_f,1,data/raw/exemple/fake_f.mp4
